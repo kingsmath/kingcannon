@@ -1,13 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5YW0T2C109"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-5YW0T2C109');
-    </script>
-
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>대포킹 Cannon King · 전자칠판 포격 대전 게임</title>
@@ -200,7 +193,7 @@
   #roundLabel{left:16px; color:#ffd447;}
   #turnStatus{right:16px; color:#fff;}
   #windBox{
-    position:absolute; top:12px; left:50%; transform:translateX(-50%);
+    position:absolute; top:66px; left:50%; transform:translateX(-50%);
     display:flex; align-items:center; gap:10px; background:rgba(10,15,32,.85);
     padding:8px 24px; border-radius:40px; border:2px solid rgba(255,255,255,.15);
     box-shadow:0 6px 18px rgba(0,0,0,.5); z-index:8;
@@ -208,6 +201,27 @@
   #windBox .windLabel{font-size:15px; font-weight:700; color:#9aa3c9;}
   #windArrow{font-size:26px; transition:transform .3s;}
   #windVal{font-size:22px; font-weight:900; color:#9fd7ff; min-width:26px; text-align:center;}
+
+  /* 턴 제한시간 타이머 (상단 중앙) */
+  #timerBox{
+    position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    z-index:9; display:none; align-items:center; justify-content:center; gap:6px;
+    min-width:70px; height:50px; padding:0 20px; border-radius:26px;
+    background:rgba(10,15,32,.92); border:3px solid #3ddc84;
+    box-shadow:0 6px 18px rgba(0,0,0,.5);
+    font-size:32px; font-weight:900; color:#3ddc84; line-height:1;
+    font-variant-numeric:tabular-nums;
+  }
+  #timerBox .timerClock{font-size:22px;}
+  #timerBox.urgent{
+    border-color:#ff4d4d; color:#ff6b5a; background:rgba(40,10,14,.92);
+    box-shadow:0 0 22px rgba(255,60,50,.6);
+    animation:timerPulse .5s ease-in-out infinite;
+  }
+  @keyframes timerPulse{
+    0%,100%{transform:translateX(-50%) scale(1);}
+    50%{transform:translateX(-50%) scale(1.16);}
+  }
 
   #battlefieldWrap{flex:1 1 auto; position:relative; min-height:0; background:#000;}
   #battlefield{display:block; width:100%; height:100%; object-fit:contain;}
@@ -404,6 +418,7 @@
       <div class="overlayBadge" id="roundLabel">R 1</div>
       <div id="windBox"><span class="windLabel">바람 · WIND</span><span id="windArrow">➔</span><span id="windVal">0</span></div>
       <div class="overlayBadge" id="turnStatus">✔ 0 / 0</div>
+      <div id="timerBox"><span class="timerClock">⏱</span><span id="timerVal">10</span></div>
     </div>
     <div id="controlsRow"></div>
   </div>
@@ -444,6 +459,7 @@
   const MOVE_SUB = 6;                        // 한 스텝 이동 px (부드러운 이동/경사 판정용)
   const MAX_CLIMB = 1.2;                     // 오를 수 있는 최대 경사(rise/run). 초과 시 막힘
   const CANNON_GAP = 44;                     // 대포끼리 최소 간격(px)
+  const TURN_TIME = 10;                      // 턴당 제한시간(초). 시간 안에 확인하지 않으면 발사 기회를 놓침
 
   // ============== AUDIO ==============
   let actx = null;
@@ -467,6 +483,11 @@
   function sndWin(){ beep(440,880,0.6,'triangle',0.25); }
   function sndCount(){ beep(760,600,0.18,'square',0.22); }   // 3,2,1 틱
   function sndStart(){ beep(300,1000,0.45,'sawtooth',0.28); } // START
+  function sndTick(){ beep(620,620,0.10,'square',0.20); }     // 타이머 평상시 "뚜"
+  function sndTickUrgent(){                                    // 남은 3초 이내 강조 "뚜뚜" (높고 급박하게)
+    beep(1060,1060,0.12,'square',0.32);
+    setTimeout(()=>beep(1060,1060,0.12,'square',0.32), 140);
+  }
   function sndBlocked(){ beep(280,280,0.07,'square',0.25); setTimeout(()=>beep(280,280,0.07,'square',0.25),100); } // 못 올라감 "띠띠"
   let lastBlockSnd = 0;
   function blockAlert(){
@@ -491,6 +512,8 @@
   let flying = false;
   let gameOver = false;
   let deathSeq = 0;              // 죽은 순서 (개인전 등수 계산용, 먼저 죽을수록 꼴등)
+  let turnTimeLeft = 0;          // 이번 턴 남은 시간(초)
+  let turnTimerId = null;        // 턴 타이머 setInterval 핸들
 
   const controlsRow = document.getElementById('controlsRow');
   const roundLabel = document.getElementById('roundLabel');
@@ -500,6 +523,8 @@
   const turnStatus = document.getElementById('turnStatus');
   const countdownEl = document.getElementById('countdown');
   const countNum = document.getElementById('countNum');
+  const timerBox = document.getElementById('timerBox');
+  const timerVal = document.getElementById('timerVal');
 
   // ============== COUNTDOWN ==============
   // 3 → 2 → 1 → START 를 순서대로 보여주고 효과음 재생. 끝나면 콜백 실행.
@@ -846,18 +871,69 @@
     const waiting = players.filter(p=>p.active && p.alive && !p.confirmed);
     updateConfirmCounter();
     if(waiting.length===0){
+      hideTurnTimer();
       turnStatus.textContent = '발사! · FIRE';
       setTimeout(fireAll, 250);
     }
   }
 
+  // ============== TURN TIMER (10초 제한) ==============
+  // 매 턴 10초 카운트. 10초 내내 매초 "뚜" 소리, 남은 3초부터는 다른(급박한) 소리로 강조.
+  // 시간 안에 확인(발사 준비)하지 않은 대포는 이번 발사 기회를 놓친다.
+  function updateTimerUI(){
+    timerVal.textContent = Math.max(0, turnTimeLeft);
+    timerBox.classList.toggle('urgent', turnTimeLeft <= 3);
+  }
+  function startTurnTimer(){
+    stopTurnTimer();
+    if(gameOver) return;
+    turnTimeLeft = TURN_TIME;
+    timerBox.style.display = 'flex';
+    updateTimerUI();
+    sndTick();                                   // 시작 "뚜"
+    turnTimerId = setInterval(()=>{
+      turnTimeLeft--;
+      updateTimerUI();
+      if(turnTimeLeft <= 0){ onTurnTimeout(); return; }
+      if(turnTimeLeft <= 3) sndTickUrgent();     // 남은 3초 이내: 강조음 "뚜뚜"
+      else sndTick();                            // 그 외: 평상시 "뚜"
+    }, 1000);
+  }
+  function stopTurnTimer(){
+    if(turnTimerId){ clearInterval(turnTimerId); turnTimerId = null; }
+  }
+  function hideTurnTimer(){
+    stopTurnTimer();
+    timerBox.style.display = 'none';
+    timerBox.classList.remove('urgent');
+  }
+  // 시간 초과: 확인하지 않은 대포는 이번 라운드 발사 기회를 잃고, 발사 진행
+  function onTurnTimeout(){
+    stopTurnTimer();
+    players.forEach(p=>{
+      if(!p.active || !p.alive || p.confirmed) return;   // 이미 확인한 대포는 그대로 발사
+      const btn = document.getElementById('fire'+p.idx);
+      if(btn){ btn.textContent = '놓침 · MISS'; btn.disabled = true; btn.classList.remove('done'); }
+      const dialEl = document.getElementById('angledial'+p.idx);
+      const powBarEl = document.getElementById('powerbar'+p.idx);
+      const moveEl = document.getElementById('moverow'+p.idx);
+      if(dialEl) dialEl.classList.add('locked');
+      if(powBarEl) powBarEl.classList.add('locked');
+      if(moveEl) moveEl.classList.add('locked');
+    });
+    hideTurnTimer();
+    turnStatus.textContent = '발사! · FIRE';
+    setTimeout(fireAll, 250);
+  }
+
   // ============== FIRING / PHYSICS ==============
   function fireAll(){
+    hideTurnTimer();  // 발사 시작 → 타이머 종료
     flying = true;
     pastPaths = [];   // 새로 발사하면 지난 궤적 지움
     sndFire();
     players.forEach(p=>{
-      if(!p.alive) return;
+      if(!p.alive || !p.confirmed) return;   // 시간 안에 확인한 대포만 발사 (놓친 대포는 제외)
       const facing = p.facing;
       const rad = p.angle * Math.PI/180;
       const speed = p.power * POWER_SCALE;
@@ -1074,6 +1150,7 @@
       if(moveEl) moveEl.classList.remove('locked');
     });
     updateConfirmCounter();
+    startTurnTimer();   // 새 턴 시작 → 10초 제한시간 카운트
   }
 
   function showResult(result){
@@ -1322,10 +1399,11 @@
     updateConfirmCounter();
     resizeCanvas();
 
-    runCountdown();
+    runCountdown(startTurnTimer);   // 카운트다운(3·2·1·START) 끝나면 10초 제한시간 시작
   }
 
   function backToStart(){
+    hideTurnTimer();
     document.getElementById('gameScreen').style.display = 'none';
     document.getElementById('gameOverScreen').style.display = 'none';
     document.getElementById('startScreen').style.display = 'flex';
