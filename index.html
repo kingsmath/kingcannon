@@ -237,6 +237,8 @@
     /* 화면 가로에 비례해 높이 조정 (좁은 화면일수록 게이지도 작아지므로 하단이 잘리지 않음) */
     flex:0 0 clamp(248px, 22vw, 300px); display:flex;     justify-content: space-evenly;
     background:#0a0e1e; border-top:3px solid #000;
+    /* 조작부 내용(버튼 글자 등)이 늘어나도 행 높이가 커져 게임 화면이 작아지지 않도록 고정 */
+    min-height:0; overflow:hidden;
   }
   .col{
     /* 인원수와 상관없이 항상 6인용 크기로 고정 (6칸이 꽉 차는 폭) */
@@ -314,6 +316,8 @@
   .fireBtn{
     margin-top:2px; width:92%; padding:7px 4px; border-radius:10px; border:none; cursor:pointer;
     font-size:16px; font-weight:900; background:#ffd447; color:#3a2600;
+    /* 글자가 바뀌어도 줄바꿈으로 높이가 변하지 않도록 한 줄 고정 */
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .fireBtn:disabled{background:#2c3352; color:#5f6a94; cursor:default;}
   .fireBtn.done{background:#1f5c3d; color:#7bffc0;}
@@ -1418,8 +1422,8 @@
       ctx2d.beginPath(); ctx2d.moveTo(2,-3); ctx2d.lineTo(len-9,-3); ctx2d.stroke();
       ctx2d.restore();
 
-      // 에너지(HP) 게이지 — 탱크 그림자 아래 하단에 두는 녹색 막대 (남은 양을 직관적으로 표시)
-      const barW = 48, barH = 8, barY = 14;   // 그림자(y≈4~11) 바로 아래
+      // 에너지(HP) 게이지 — 탱크 위에 떠 있는 녹색 막대 (땅에 가려지지 않도록 탱크 위로)
+      const barW = 48, barH = 8, barY = -52;   // 탱크 몸통 위
       const hpFrac = Math.max(0, Math.min(1, p.hp/100));
       // 배경(테두리)
       ctx2d.fillStyle = 'rgba(0,0,0,0.7)';
@@ -1438,8 +1442,8 @@
       ctx2d.font = '16px "Do Hyeon"';
       ctx2d.textAlign = 'center';
       ctx2d.strokeStyle='rgba(0,0,0,0.6)'; ctx2d.lineWidth=3;
-      ctx2d.strokeText((p.idx+1)+'P', 0, -48);
-      ctx2d.fillText((p.idx+1)+'P', 0, -48);
+      ctx2d.strokeText((p.idx+1)+'P', 0, -66);
+      ctx2d.fillText((p.idx+1)+'P', 0, -66);
       ctx2d.restore();
     });
 
