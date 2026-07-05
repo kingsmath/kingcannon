@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+     <script async src="https://www.googletagmanager.com/gtag/js?id=G-5YW0T2C109"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-5YW0T2C109');
+    </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>대포킹 Cannon King · 전자칠판 포격 대전 게임</title>
@@ -374,7 +381,7 @@
   /* ---------- GAME OVER ---------- */
   #gameOverScreen{
     position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column;
-    background:rgba(5,7,18,.92); z-index:60; gap:26px;
+    background:rgba(5,7,18,.2); z-index:60; gap:26px;
   }
   #gameOverScreen h2{font-family:'Do Hyeon',sans-serif; font-size:60px; margin:0; text-align:center;}
   #gameOverScreen h2 .en{font-size:22px; margin-top:8px;}
@@ -531,10 +538,16 @@
   function sndWin(){ beep(440,880,0.6,'triangle',0.25); }
   function sndCount(){ beep(760,600,0.18,'square',0.22); }   // 3,2,1 틱
   function sndStart(){ beep(300,1000,0.45,'sawtooth',0.28); } // START
-  function sndTick(){ beep(620,620,0.10,'square',0.20); }     // 타이머 평상시 "뚜"
-  function sndTickUrgent(){                                    // 남은 3초 이내 강조 "뚜뚜" (높고 급박하게)
-    beep(1060,1060,0.12,'square',0.32);
-    setTimeout(()=>beep(1060,1060,0.12,'square',0.32), 140);
+  function sndTick(vol){ beep(620,620,0.10,'square', vol||0.18); }     // 타이머 평상시 "뚜" (vol로 점점 크게)
+  function sndTickUrgent(vol){                                          // 남은 3초 이내 강조 "뚜뚜" (높고 급박하게)
+    const v = vol||0.32;
+    beep(1060,1060,0.12,'square', v);
+    setTimeout(()=>beep(1060,1060,0.12,'square', v), 140);
+  }
+  function sndReady(){                                                  // 턴 안내 "따라랑~" 상승 차임
+    beep(523,523,0.12,'triangle',0.26);
+    setTimeout(()=>beep(659,659,0.12,'triangle',0.26),110);
+    setTimeout(()=>beep(784,1046,0.24,'triangle',0.30),220);
   }
   function sndBlocked(){ beep(280,280,0.07,'square',0.25); setTimeout(()=>beep(280,280,0.07,'square',0.25),100); } // 못 올라감 "띠띠"
   let lastBlockSnd = 0;
@@ -944,6 +957,7 @@
     readyBanner.classList.remove('show');
     void readyBanner.offsetWidth;             // 애니메이션 리셋
     readyBanner.classList.add('show');
+    sndReady();                               // "따라랑~" 안내 효과음
     setTimeout(()=>{
       readyBanner.style.display = 'none';
       if(!gameOver && !flying) startTurnTimer();
@@ -963,13 +977,14 @@
     turnTimeLeft = TURN_TIME;
     timerBox.style.display = 'flex';
     updateTimerUI();
-    sndTick();                                   // 시작 "뚜"
+    sndTick(0.12);                               // 시작 "뚜" (가장 작게)
     turnTimerId = setInterval(()=>{
       turnTimeLeft--;
       updateTimerUI();
       if(turnTimeLeft <= 0){ onTurnTimeout(); return; }
-      if(turnTimeLeft <= 3) sndTickUrgent();     // 남은 3초 이내: 강조음 "뚜뚜"
-      else sndTick();                            // 그 외: 평상시 "뚜"
+      const vol = 0.12 + (1 - turnTimeLeft/TURN_TIME)*0.45;   // 시간이 갈수록 점점 크게
+      if(turnTimeLeft <= 3) sndTickUrgent(vol);  // 남은 3초 이내: 강조음 "뚜뚜"
+      else sndTick(vol);                         // 그 외: 평상시 "뚜"
     }, 1000);
   }
   function stopTurnTimer(){
@@ -1248,7 +1263,18 @@
       }
       const aHp = Math.round(players.filter(p=>p.team==='A').reduce((s,p)=>s+Math.max(0,p.hp),0));
       const bHp = Math.round(players.filter(p=>p.team==='B').reduce((s,p)=>s+Math.max(0,p.hp),0));
-      score.textContent = '🔴 '+aHp+'   :   '+bHp+' 🔵';
+      // 전체 등수표: 생존자(에너지 많은 순) → 사망자(나중에 죽은 순)
+      const ranked = players.slice().sort((a,b)=>{
+        const aAlive = a.hp>0, bAlive = b.hp>0;
+        if(aAlive!==bAlive) return aAlive ? -1 : 1;
+        if(aAlive) return b.hp - a.hp;
+        return b.deathOrder - a.deathOrder;
+      });
+      const medal = r => r===1?'🥇':r===2?'🥈':r===3?'🥉':'';
+      const rankHtml = ranked.map((p,i)=>
+        `<span class="rankItem" style="color:${p.color}">${medal(i+1)} ${i+1}등 · ${p.idx+1}P</span>`
+      ).join('');
+      score.innerHTML = '<div style="width:100%;text-align:center;margin-bottom:4px">🔴 '+aHp+'   :   '+bHp+' 🔵</div>' + rankHtml;
     } else {
       // 개인전
       if(!result.player){
@@ -1387,13 +1413,28 @@
       ctx2d.beginPath(); ctx2d.moveTo(2,-3); ctx2d.lineTo(len-9,-3); ctx2d.stroke();
       ctx2d.restore();
 
+      // 에너지(HP) 게이지 — 대포 위에 떠 있는 녹색 막대 (남은 양을 직관적으로 표시)
+      const barW = 48, barH = 8, barY = -50;
+      const hpFrac = Math.max(0, Math.min(1, p.hp/100));
+      // 배경(테두리)
+      ctx2d.fillStyle = 'rgba(0,0,0,0.7)';
+      if(ctx2d.roundRect){ ctx2d.beginPath(); ctx2d.roundRect(-barW/2-2, barY-2, barW+4, barH+4, 4); ctx2d.fill(); }
+      else ctx2d.fillRect(-barW/2-2, barY-2, barW+4, barH+4);
+      // 채워진 에너지 (많으면 초록 → 적으면 노랑 → 위험하면 빨강)
+      ctx2d.fillStyle = hpFrac>0.5 ? '#3ddc84' : hpFrac>0.2 ? '#ffcb3d' : '#ff4d4d';
+      const innerW = barW*hpFrac;
+      if(innerW>0){
+        if(ctx2d.roundRect){ ctx2d.beginPath(); ctx2d.roundRect(-barW/2, barY, innerW, barH, 3); ctx2d.fill(); }
+        else ctx2d.fillRect(-barW/2, barY, innerW, barH);
+      }
+
       // 팀 라벨
       ctx2d.fillStyle = '#fff';
       ctx2d.font = '16px "Do Hyeon"';
       ctx2d.textAlign = 'center';
       ctx2d.strokeStyle='rgba(0,0,0,0.6)'; ctx2d.lineWidth=3;
-      ctx2d.strokeText((p.idx+1)+'P', 0, -48);
-      ctx2d.fillText((p.idx+1)+'P', 0, -48);
+      ctx2d.strokeText((p.idx+1)+'P', 0, -64);
+      ctx2d.fillText((p.idx+1)+'P', 0, -64);
       ctx2d.restore();
     });
 
