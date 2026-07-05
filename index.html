@@ -14,8 +14,8 @@
 <link rel="canonical" href="https://킹수학.com/">
 
 <!-- 대표(썸네일) 이미지 -->
-<meta name="image" content="1.png">
-<link rel="image_src" href="1.png">
+<meta name="image" content="https://1.png">
+<link rel="image_src" href="https://1.png">
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
@@ -24,8 +24,8 @@
 <meta property="og:locale" content="ko_KR">
 <meta property="og:site_name" content="킹수학">
 <meta property="og:url" content="https://킹수학.com/">
-<meta property="og:image" content="1.png">
-<meta property="og:image:secure_url" content="1.png">
+<meta property="og:image" content="https://1.png">
+<meta property="og:image:secure_url" content="https://1.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -35,7 +35,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="대포킹 Cannon King">
 <meta name="twitter:description" content="각도와 파워를 맞춰 동시에 발사하는 전자칠판 포격 대전 게임.">
-<meta name="twitter:image" content="1.png">
+<meta name="twitter:image" content="https://1.png">
 <meta name="twitter:image:alt" content="대포킹 Cannon King 게임 썸네일">
 
 <!-- 구조화 데이터 (JSON-LD) -->
@@ -46,8 +46,8 @@
   "name": "대포킹 (Cannon King)",
   "alternateName": "Cannon King",
   "description": "각도와 파워를 맞춰 동시에 발사하는 2~6인 전자칠판 포격 대전 게임.",
-  "image": "https://킹수학.com/1.png",
-  "thumbnailUrl": "https://킹수학.com/1.png",
+  "image": "https://1.png",
+  "thumbnailUrl": "https://1.png",
   "genre": ["Artillery", "Strategy", "Educational"],
   "gamePlatform": "Web Browser",
   "applicationCategory": "Game",
@@ -329,6 +329,27 @@
   }
   #countNum.anim{animation:countPop .8s ease-out;}
 
+  /* ---------- FIRE BANNER (모두 확인 → 발사) ---------- */
+  #fireBanner{
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    z-index:65; pointer-events:none;
+  }
+  #fireBanner .fireText{
+    font-family:'Do Hyeon',sans-serif; font-size:clamp(64px,17vh,160px); color:#ff5b4a; text-align:center; line-height:1;
+    text-shadow:0 5px 0 #7a1206, 0 12px 38px rgba(0,0,0,.85);
+  }
+  #fireBanner .fireText .en{
+    display:block; font-size:.4em; letter-spacing:8px; color:#ffd447; margin-top:6px;
+    text-shadow:0 3px 14px rgba(0,0,0,.85);
+  }
+  @keyframes firePop{
+    0%{transform:scale(.4); opacity:0;}
+    22%{transform:scale(1.18); opacity:1;}
+    65%{transform:scale(1); opacity:1;}
+    100%{transform:scale(1.45); opacity:0;}
+  }
+  #fireBanner.show .fireText{animation:firePop .6s ease-out forwards;}
+
   /* ---------- GAME OVER ---------- */
   #gameOverScreen{
     position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column;
@@ -425,6 +446,9 @@
 
   <!-- COUNTDOWN -->
   <div id="countdown"><span id="countNum">3</span></div>
+
+  <!-- FIRE BANNER -->
+  <div id="fireBanner"><span class="fireText">발사!<span class="en">FIRE!</span></span></div>
 
   <!-- GAME OVER -->
   <div id="gameOverScreen">
@@ -525,6 +549,7 @@
   const countNum = document.getElementById('countNum');
   const timerBox = document.getElementById('timerBox');
   const timerVal = document.getElementById('timerVal');
+  const fireBanner = document.getElementById('fireBanner');
 
   // ============== COUNTDOWN ==============
   // 3 → 2 → 1 → START 를 순서대로 보여주고 효과음 재생. 끝나면 콜백 실행.
@@ -873,8 +898,17 @@
     if(waiting.length===0){
       hideTurnTimer();
       turnStatus.textContent = '발사! · FIRE';
-      setTimeout(fireAll, 250);
+      triggerFire();
     }
+  }
+
+  // 모두 확인 완료 → 화면 중앙에 '발사! FIRE!' 크게 띄우고 발사
+  function triggerFire(){
+    fireBanner.style.display = 'flex';
+    fireBanner.classList.remove('show');
+    void fireBanner.offsetWidth;              // 애니메이션 리셋
+    fireBanner.classList.add('show');
+    setTimeout(()=>{ fireBanner.style.display = 'none'; fireAll(); }, 550);
   }
 
   // ============== TURN TIMER (10초 제한) ==============
@@ -923,7 +957,7 @@
     });
     hideTurnTimer();
     turnStatus.textContent = '발사! · FIRE';
-    setTimeout(fireAll, 250);
+    triggerFire();
   }
 
   // ============== FIRING / PHYSICS ==============
