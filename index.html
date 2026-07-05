@@ -141,12 +141,16 @@
   /* options: 심플한 세그먼트 버튼 */
   .opt-block{display:flex; flex-direction:column; gap:clamp(8px,1.3vh,14px); align-items:center;}
   .opt-group{display:flex; align-items:center; gap:12px;}
-  .opt-title{min-width:70px; text-align:right; font-size:clamp(15px,2vh,18px); font-weight:900; color:#cfd6f2; text-shadow:0 2px 6px rgba(0,0,0,.8);}
+  .opt-title{min-width:78px; text-align:right; font-size:clamp(15px,2vh,18px); font-weight:900; color:#cfd6f2; text-shadow:0 2px 6px rgba(0,0,0,.8); line-height:1.05;}
+  .opt-title .en{text-align:right; margin-top:0;}
   .seg{display:inline-flex; background:rgba(10,14,30,.6); border:2px solid rgba(255,255,255,.12); border-radius:12px; overflow:hidden;}
   .seg .opt-btn{
-    min-width:60px; padding:clamp(7px,1.2vh,9px) clamp(12px,2vw,16px); border:none; background:transparent; color:#aeb6d6;
-    font-size:clamp(16px,2.2vh,19px); font-weight:900; cursor:pointer; transition:background .12s, color .12s; line-height:1;
+    min-width:62px; padding:clamp(6px,1vh,8px) clamp(12px,2vw,16px); border:none; background:transparent; color:#aeb6d6;
+    font-size:clamp(16px,2.2vh,19px); font-weight:900; cursor:pointer; transition:background .12s, color .12s; line-height:1.05;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;
   }
+  .seg .opt-btn .en{margin-top:1px;}
+  .seg .opt-btn.selected .en{color:#6b5300;}
   .seg .opt-btn + .opt-btn{border-left:2px solid rgba(255,255,255,.1);}
   .seg .opt-btn.selected{background:#ffd447; color:#241a00;}
   .seg .opt-btn:active{transform:scale(.96);}
@@ -165,12 +169,8 @@
 
   /* ---------- GAME SCREEN ---------- */
   #gameScreen{display:none; width:100%; height:100%; flex-direction:column;}
-  #topBar{
-    height:64px; flex:0 0 64px; display:flex; align-items:center; justify-content:space-between;
-    padding:0 16px; background:var(--panel-bg); border-bottom:2px solid #000; z-index:5;
-  }
-  #topBar .grp{display:flex; align-items:center; gap:14px;}
-  #topBar .roundLabel{font-size:22px; font-weight:900; color:#ffd447; min-width:90px; text-align:center;}
+
+  /* 홈 / 전체화면 버튼 (게임판 위 오버레이, 좌우 세로 중앙) */
   .iconBtn{
     position:absolute; top:50%; transform:translateY(-50%); z-index:9;
     width:48px; height:48px; border-radius:12px; border:2px solid rgba(255,255,255,.15);
@@ -182,23 +182,32 @@
   #fsBtn{right:14px;}
   .iconBtn:active{transform:translateY(-50%) scale(.9);}
   .iconBtn:hover{background:rgba(40,49,92,.9);}
+
+  /* 게임판 위 오버레이 배지 (라운드 / 확인 카운터) */
+  .overlayBadge{
+    position:absolute; top:12px; z-index:8;
+    background:rgba(10,15,32,.8); border:2px solid rgba(255,255,255,.15);
+    border-radius:12px; padding:7px 16px; box-shadow:0 4px 14px rgba(0,0,0,.45);
+    font-size:22px; font-weight:900; text-align:center; line-height:1;
+  }
+  #roundLabel{left:16px; color:#ffd447;}
+  #turnStatus{right:16px; color:#fff;}
   #windBox{
-    position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    position:absolute; top:12px; left:50%; transform:translateX(-50%);
     display:flex; align-items:center; gap:10px; background:rgba(10,15,32,.85);
-    padding:10px 26px; border-radius:40px; border:2px solid rgba(255,255,255,.15);
+    padding:8px 24px; border-radius:40px; border:2px solid rgba(255,255,255,.15);
     box-shadow:0 6px 18px rgba(0,0,0,.5); z-index:8;
   }
   #windBox .windLabel{font-size:15px; font-weight:700; color:#9aa3c9;}
   #windArrow{font-size:26px; transition:transform .3s;}
   #windVal{font-size:22px; font-weight:900; color:#9fd7ff; min-width:26px; text-align:center;}
-  #turnStatus{font-size:22px; font-weight:900; color:#eee; min-width:120px; text-align:center;}
 
   #battlefieldWrap{flex:1 1 auto; position:relative; min-height:0; background:#000;}
   #battlefield{display:block; width:100%; height:100%; object-fit:contain;}
 
   #controlsRow{
     /* 화면 가로에 비례해 높이 조정 (좁은 화면일수록 게이지도 작아지므로 하단이 잘리지 않음) */
-    flex:0 0 clamp(248px, 22vw, 300px); display:flex; justify-content:center;
+    flex:0 0 clamp(248px, 22vw, 300px); display:flex;     justify-content: space-evenly;
     background:#0a0e1e; border-top:3px solid #000;
   }
   .col{
@@ -208,10 +217,19 @@
     background:var(--panel-bg2); border:3px solid transparent; transition:opacity .3s, border-color .2s;
   }
   .col.live{border-color:var(--pd,#444);}
-  .col.dead{opacity:.35;}
+  /* 죽은 칸은 내부만 흐리게 (등수 배지는 또렷하게 유지) */
+  .col.dead .pname{opacity:.5;}
+  .col.dead .hpBarOuter, .col.dead .angleDial, .col.dead .powerBar, .col.dead .moveRow{opacity:.28;}
   .col.confirmed{border-color:#3ddc84;}
   .col .pname{font-size:15px; font-weight:900; letter-spacing:1px;}
   .col.live .pname{color:var(--pc,#fff);}
+  /* 조작부 등수 배지 (개인전) */
+  .rankBadge{
+    position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; border-radius:11px; z-index:6; background:rgba(5,8,20,.82); border:3px solid var(--pc,#ffd447);
+    font-size:clamp(26px,5vh,44px); font-weight:900; color:#ffd447; text-shadow:0 3px 8px #000;
+  }
+  .rankBadge .en{font-size:.36em; color:#cfd6f2; letter-spacing:1px; margin-top:2px;}
   .hpBarOuter{width:88%; height:9px; background:#000; border-radius:6px; overflow:hidden; margin-bottom:2px;}
   .hpBarInner{height:100%; background:#3ddc84; width:100%; transition:width .4s;}
   .angleDial{position:relative; width:76%; max-width:188px; touch-action:none; cursor:pointer;}
@@ -299,7 +317,9 @@
   #gameOverScreen h2 .en{font-size:22px; margin-top:8px;}
   #gameOverScreen h2.win-A{color:var(--teamA);}
   #gameOverScreen h2.win-B{color:var(--teamB);}
-  #scoreText{font-size:22px; font-weight:700; color:#c7cdea;}
+  #scoreText{font-size:22px; font-weight:700; color:#c7cdea;
+    display:flex; flex-wrap:wrap; gap:6px 18px; justify-content:center; align-items:center; max-width:90vw;}
+  .rankItem{font-size:clamp(18px,2.6vh,26px); font-weight:900; white-space:nowrap; text-shadow:0 2px 6px rgba(0,0,0,.6);}
   #restartBtn2{
     background:#ffd447; color:#3a2600; border:none; border-radius:14px; padding:16px 40px;
     font-size:24px; font-weight:900; cursor:pointer; text-align:center; line-height:1.1;
@@ -324,18 +344,25 @@
 
     <div class="opt-block">
       <div class="opt-group">
-        <div class="opt-title">바람</div>
+        <div class="opt-title">바람<span class="en">WIND</span></div>
         <div class="seg" id="windOpts">
-          <button class="opt-btn selected" data-wind="1">있음</button>
-          <button class="opt-btn" data-wind="0">없음</button>
+          <button class="opt-btn selected" data-wind="1">있음<span class="en">ON</span></button>
+          <button class="opt-btn" data-wind="0">없음<span class="en">OFF</span></button>
         </div>
       </div>
       <div class="opt-group">
-        <div class="opt-title">발사</div>
+        <div class="opt-title">발사<span class="en">SHOTS</span></div>
         <div class="seg" id="shotOpts">
-          <button class="opt-btn" data-shots="5">5</button>
-          <button class="opt-btn" data-shots="10">10</button>
-          <button class="opt-btn selected" data-shots="inf">끝까지</button>
+          <button class="opt-btn" data-shots="5">5<span class="en">SHOTS</span></button>
+          <button class="opt-btn" data-shots="10">10<span class="en">SHOTS</span></button>
+          <button class="opt-btn selected" data-shots="inf">끝까지<span class="en">ALL</span></button>
+        </div>
+      </div>
+      <div class="opt-group">
+        <div class="opt-title">궤적<span class="en">TRAIL</span></div>
+        <div class="seg" id="trailOpts">
+          <button class="opt-btn selected" data-trail="1">있음<span class="en">ON</span></button>
+          <button class="opt-btn" data-trail="0">없음<span class="en">OFF</span></button>
         </div>
       </div>
     </div>
@@ -362,19 +389,14 @@
 
   <!-- GAME -->
   <div id="gameScreen">
-    <div id="topBar">
-      <div class="grp">
-        <button class="iconBtn" id="homeBtn" title="처음으로 / Home">🏠</button>
-        <div class="roundLabel" id="roundLabel">R 1</div>
-      </div>
-      <div class="grp"><div id="turnStatus">✔ 0 / 0</div></div>
-      <div class="grp">
-        <button class="iconBtn" id="fsBtn" title="전체화면 / Fullscreen">⛶</button>
-      </div>
-    </div>
     <div id="battlefieldWrap">
       <canvas id="battlefield"></canvas>
+      <!-- 게임판 위 오버레이 UI -->
+      <button class="iconBtn" id="homeBtn" title="처음으로 / Home">🏠</button>
+      <button class="iconBtn" id="fsBtn" title="전체화면 / Fullscreen">⛶</button>
+      <div class="overlayBadge" id="roundLabel">R 1</div>
       <div id="windBox"><span class="windLabel">바람 · WIND</span><span id="windArrow">➔</span><span id="windVal">0</span></div>
+      <div class="overlayBadge" id="turnStatus">✔ 0 / 0</div>
     </div>
     <div id="controlsRow"></div>
   </div>
@@ -407,6 +429,7 @@
   const POWER_SCALE = 13;   // power * 이 값 = 초기 속도. power70, 45도면 맵 끝까지 도달
   const WIND_MAX = 55;      // 최대 바람 세기
   const WIND_ACCEL = 3;     // 바람 가속도 배율
+  const WIND_STEP = 10;     // 턴이 넘어갈 때 바람이 변하는 최대 폭 (이전 값 ±10 이내)
   // 이동
   const MOVE_MAX = 10;                       // 턴당 이동 게이지
   const MOVE_TOTAL_PX = CW/10;               // 게이지 10 = 화면 가로의 1/10
@@ -454,10 +477,13 @@
   let wind = 0;
   let windEnabled = true;        // 바람 옵션
   let roundLimit = Infinity;     // 발사 횟수 옵션 (5 / 10 / Infinity)
+  let trailsEnabled = true;      // 궤적 남기기 옵션 (기본 ON)
   let projectiles = [];
   let explosions = [];
+  let pastPaths = [];            // 직전 발사의 대포알 경로들 (다음 발사 전까지 표시)
   let flying = false;
   let gameOver = false;
+  let deathSeq = 0;              // 죽은 순서 (개인전 등수 계산용, 먼저 죽을수록 꼴등)
 
   const controlsRow = document.getElementById('controlsRow');
   const roundLabel = document.getElementById('roundLabel');
@@ -587,7 +613,8 @@
       facing: x < CW/2 ? 1 : -1,   // 왼쪽은 오른쪽을, 오른쪽은 왼쪽을 바라봄
       active:true, alive:true,
       x, y:0, hp:100, angle:45, power:55, confirmed:false,
-      moveBudget: MOVE_MAX
+      moveBudget: MOVE_MAX,
+      rank:0, deathOrder:0
     };
   }
 
@@ -628,6 +655,7 @@
       col.style.setProperty('--pd', p.dark);
 
       col.innerHTML = `
+        <div class="rankBadge" id="rank${p.idx}"></div>
         <div class="pname">${p.idx+1}P</div>
         <div class="hpBarOuter"><div class="hpBarInner" id="hp${p.idx}"></div></div>
         <div class="angleDial" id="angledial${p.idx}">
@@ -819,6 +847,7 @@
   // ============== FIRING / PHYSICS ==============
   function fireAll(){
     flying = true;
+    pastPaths = [];   // 새로 발사하면 지난 궤적 지움
     sndFire();
     players.forEach(p=>{
       if(!p.alive) return;
@@ -832,7 +861,7 @@
       const spawnX = p.x + Math.cos(rad)*facing*muzzleLen;
       const spawnY = p.y + originY - Math.sin(rad)*muzzleLen;
       projectiles.push({
-        owner:p.idx, x:spawnX, y:spawnY, vx:vx, vy:vy, trail:[]
+        owner:p.idx, x:spawnX, y:spawnY, vx:vx, vy:vy, trail:[], path:[{x:spawnX,y:spawnY}]
       });
     });
   }
@@ -878,6 +907,7 @@
         pr.y += pr.vy*dt;
         pr.trail.push({x:pr.x,y:pr.y});
         if(pr.trail.length>16) pr.trail.shift();
+        pr.path.push({x:pr.x,y:pr.y});      // 전체 경로 기록 (궤적 표시용)
 
         let hit = false;
         if(pr.x<0 || pr.x>CW){ hit=true; }
@@ -891,6 +921,8 @@
         }
         if(hit){
           explodeAt(Math.max(0,Math.min(CW,pr.x)), Math.min(CH, pr.y), pr.owner);
+          const owner = players[pr.owner];
+          if(owner) pastPaths.push({color:owner.color, points:pr.path});  // 다음 발사 전까지 남김
           projectiles.splice(k,1);
         }
       }
@@ -910,7 +942,14 @@
   }
 
   function resolveRound(){
-    players.forEach(p=>{ if(p.hp<=0) p.alive=false; });
+    // 이번 라운드에 죽은 대포에 죽은 순서/등수 부여 (먼저 죽을수록 꼴등)
+    players.forEach(p=>{
+      if(p.hp<=0 && p.alive){
+        p.alive = false;
+        p.deathOrder = ++deathSeq;
+        if(gameType==='ffa') p.rank = players.length - p.deathOrder + 1; // 첫 사망 = 꼴등
+      }
+    });
 
     if(gameType==='team'){
       const aAlive = players.filter(p=>p.team==='A' && p.hp>0);
@@ -932,18 +971,26 @@
       // 1명 이하 생존 → 종료 (마지막 생존자 승)
       if(alive.length<=1){
         gameOver = true;
+        assignSurvivorRanks();
         showResult({kind:'ffa', player:alive[0]||null});
         return;
       }
       // 발사 횟수 제한 도달 → 남은 에너지 최다 승
       if(roundLimit!==Infinity && round>=roundLimit){
         gameOver = true;
+        assignSurvivorRanks();
         showResult({kind:'ffa', player:evaluateFFAWinner()});
         return;
       }
     }
 
     startNextRound();
+  }
+
+  // 개인전: 생존자 등수 부여 (남은 에너지 높은 순으로 1등부터). 사망자는 죽은 순서로 이미 결정됨.
+  function assignSurvivorRanks(){
+    const alive = players.filter(p=>p.hp>0).slice().sort((a,b)=>b.hp-a.hp);
+    alive.forEach((p,i)=> p.rank = i+1);
   }
 
   // 팀전: 상대 대포를 더 많이 잡은 쪽 → 동률이면 남은 에너지 합
@@ -975,7 +1022,9 @@
   function startNextRound(){
     round++;
     if(windEnabled){
-      wind = Math.round((Math.random()*2-1)*WIND_MAX);
+      // 이전 바람에서 ±WIND_STEP 이내로만 변화 (급변 방지)
+      const delta = Math.round((Math.random()*2-1)*WIND_STEP);
+      wind = Math.max(-WIND_MAX, Math.min(WIND_MAX, wind + delta));
     } else {
       wind = 0;
     }
@@ -999,7 +1048,14 @@
         if(powBarEl) powBarEl.classList.add('locked');
         if(moveEl) moveEl.classList.add('locked');
         const btn = document.getElementById('fire'+p.idx);
-        if(btn){ btn.textContent='탈락 · OUT'; btn.classList.remove('done'); btn.disabled=true; }
+        // 개인전이면 조작부에 등수 표시, 팀전이면 탈락
+        if(gameType==='ffa' && p.rank){
+          if(btn){ btn.textContent = p.rank+'등 · #'+p.rank; btn.classList.remove('done'); btn.disabled=true; }
+          const rb = document.getElementById('rank'+p.idx);
+          if(rb){ rb.innerHTML = p.rank+'등<span class="en">RANK '+p.rank+'</span>'; rb.style.display='flex'; }
+        } else {
+          if(btn){ btn.textContent='탈락 · OUT'; btn.classList.remove('done'); btn.disabled=true; }
+        }
         return;
       }
       const btn = document.getElementById('fire'+p.idx);
@@ -1038,11 +1094,15 @@
         txt.innerHTML = '무승부<span class="en">DRAW</span>';
       } else {
         const n = result.player.idx+1;
-        txt.innerHTML = '🏆 '+n+'P 승리!<span class="en">PLAYER '+n+' WINS</span>';
+        txt.innerHTML = '🏆 '+n+'P 우승!<span class="en">PLAYER '+n+' WINS</span>';
         txt.style.color = result.player.color;
       }
-      // 각 플레이어 남은 에너지 요약
-      score.textContent = players.map(p=>(p.idx+1)+'P ' + Math.round(Math.max(0,p.hp))).join('   ·   ');
+      // 등수표 (1등부터, 먼저 죽은 사람이 꼴등)
+      const ranked = players.slice().sort((a,b)=>a.rank-b.rank);
+      const medal = r => r===1?'🥇':r===2?'🥈':r===3?'🥉':'';
+      score.innerHTML = ranked.map(p=>
+        `<span class="rankItem" style="color:${p.color}">${medal(p.rank)} ${p.rank}등 · ${p.idx+1}P</span>`
+      ).join('');
     }
     sndWin();
     scr.style.display = 'flex';
@@ -1077,6 +1137,19 @@
       ctx2d.setLineDash([10,10]);
       ctx2d.beginPath(); ctx2d.moveTo(CW/2,0); ctx2d.lineTo(CW/2,CH); ctx2d.stroke();
       ctx2d.setLineDash([]);
+    }
+
+    // 지난 발사 궤적 (다음 발사 전까지, 대포 색 점선)
+    if(trailsEnabled && pastPaths.length){
+      pastPaths.forEach(pp=>{
+        ctx2d.fillStyle = pp.color;
+        ctx2d.globalAlpha = 0.38;
+        for(let i=0;i<pp.points.length;i+=3){
+          const pt = pp.points[i];
+          ctx2d.beginPath(); ctx2d.arc(pt.x, pt.y, 3, 0, Math.PI*2); ctx2d.fill();
+        }
+        ctx2d.globalAlpha = 1;
+      });
     }
 
     // 대포
@@ -1163,16 +1236,43 @@
       ctx2d.restore();
     });
 
-    // 발사체 + 궤적
+    // 발사체 + 궤적 (대포알 색 = 발사한 대포 색, 번호 표시)
     projectiles.forEach(pr=>{
-      ctx2d.fillStyle = 'rgba(255,210,90,0.4)';
-      pr.trail.forEach((t,i)=>{
-        ctx2d.globalAlpha = i/pr.trail.length*0.6;
-        ctx2d.beginPath(); ctx2d.arc(t.x,t.y,4,0,Math.PI*2); ctx2d.fill();
-      });
+      const owner = players[pr.owner];
+      const col = owner ? owner.color : '#ffe08a';
+      const dark = owner ? owner.dark : '#a05a00';
+      // 비행하면서 그려지는 궤적
+      if(trailsEnabled){
+        // 지금까지 지나온 전체 경로 (착탄 후에도 남는 것과 동일한 스타일)
+        ctx2d.fillStyle = col;
+        ctx2d.globalAlpha = 0.38;
+        for(let i=0;i<pr.path.length;i+=3){
+          const pt = pr.path[i];
+          ctx2d.beginPath(); ctx2d.arc(pt.x, pt.y, 3, 0, Math.PI*2); ctx2d.fill();
+        }
+      } else {
+        // 궤적 옵션 off: 짧은 꼬리만
+        pr.trail.forEach((t,i)=>{
+          ctx2d.globalAlpha = i/pr.trail.length*0.5;
+          ctx2d.fillStyle = col;
+          ctx2d.beginPath(); ctx2d.arc(t.x,t.y,4,0,Math.PI*2); ctx2d.fill();
+        });
+      }
       ctx2d.globalAlpha = 1;
-      ctx2d.fillStyle = '#ffe08a';
-      ctx2d.beginPath(); ctx2d.arc(pr.x,pr.y,6,0,Math.PI*2); ctx2d.fill();
+      // 대포알
+      ctx2d.fillStyle = col;
+      ctx2d.strokeStyle = dark; ctx2d.lineWidth = 2.5;
+      ctx2d.beginPath(); ctx2d.arc(pr.x,pr.y,11,0,Math.PI*2); ctx2d.fill(); ctx2d.stroke();
+      // 번호
+      if(owner){
+        ctx2d.font = '14px "Do Hyeon"';
+        ctx2d.textAlign = 'center'; ctx2d.textBaseline = 'middle';
+        ctx2d.lineWidth = 3; ctx2d.strokeStyle = 'rgba(0,0,0,.55)';
+        ctx2d.strokeText(owner.idx+1, pr.x, pr.y+1);
+        ctx2d.fillStyle = '#fff';
+        ctx2d.fillText(owner.idx+1, pr.x, pr.y+1);
+        ctx2d.textBaseline = 'alphabetic';
+      }
     });
 
     // 폭발
@@ -1196,6 +1296,8 @@
     gameOver = false;
     projectiles = [];
     explosions = [];
+    pastPaths = [];
+    deathSeq = 0;
     flying = false;
 
     document.getElementById('startScreen').style.display = 'none';
@@ -1234,6 +1336,13 @@
     btn.addEventListener('click', ()=>{
       roundLimit = btn.dataset.shots==='inf' ? Infinity : parseInt(btn.dataset.shots,10);
       document.querySelectorAll('#shotOpts .opt-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+  document.querySelectorAll('#trailOpts .opt-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      trailsEnabled = btn.dataset.trail==='1';
+      document.querySelectorAll('#trailOpts .opt-btn').forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');
     });
   });
