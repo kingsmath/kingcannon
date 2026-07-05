@@ -1374,6 +1374,7 @@
         if(aAlive) return b.hp - a.hp;
         return b.deathOrder - a.deathOrder;
       });
+      ranked.forEach((p,i)=> p.rank = i+1);   // 조작부 등수 배지용 최종 순위
       const medal = r => r===1?'🥇':r===2?'🥈':r===3?'🥉':'';
       const rankHtml = ranked.map((p,i)=>
         `<span class="rankItem" style="color:${p.color}">${medal(i+1)} ${i+1}등 · ${p.idx+1}P</span>`
@@ -1395,8 +1396,22 @@
         `<span class="rankItem" style="color:${p.color}">${medal(p.rank)} ${p.rank}등 · ${p.idx+1}P</span>`
       ).join('');
     }
+    showControlRanks();   // 조작부(하단)에도 최종 등수 배지 표시
     sndWin();
     scr.style.display = 'flex';
+  }
+
+  // 게임 종료 시 각 조작부 칸에 최종 등수 배지를 띄운다 (1등·2등…)
+  function showControlRanks(){
+    const medal = r => r===1?'🥇':r===2?'🥈':r===3?'🥉':'';
+    players.forEach(p=>{
+      if(!p.rank) return;
+      const rb = document.getElementById('rank'+p.idx);
+      if(rb){
+        rb.innerHTML = medal(p.rank)+' '+p.rank+'등<span class="en">RANK '+p.rank+'</span>';
+        rb.style.display = 'flex';
+      }
+    });
   }
 
   // ============== RENDER ==============
