@@ -382,6 +382,68 @@
   }
   #readyBanner.show .readyText{animation:readyPop 1.2s ease-out forwards;}
 
+  /* ---------- FFA 자리 배정 인트로 ---------- */
+  #ffaOverlay{
+    position:absolute; inset:0; display:none; z-index:66;
+    flex-direction:column; align-items:center; justify-content:center;
+    gap:clamp(14px,3vh,30px); padding:clamp(16px,4vh,40px) 16px; text-align:center;
+    background:rgba(5,7,18,.94);
+  }
+  #ffaOverlay h2{
+    font-family:'Do Hyeon',sans-serif; font-size:clamp(26px,5vh,48px); margin:0; color:#ffd447; line-height:1.2;
+    text-shadow:0 3px 0 #8a5a00, 0 8px 24px rgba(0,0,0,.8);
+  }
+  #ffaOverlay h2 .en{font-size:.4em; letter-spacing:4px; color:#cfd6f2; margin-top:6px;}
+  .ffaColorGrid{display:flex; flex-wrap:wrap; gap:clamp(10px,1.8vw,20px); justify-content:center; max-width:980px;}
+  .ffaColorCard{
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    padding:clamp(10px,1.6vh,16px) clamp(14px,2vw,22px); border-radius:16px;
+    background:rgba(255,255,255,.05); border:3px solid var(--cc);
+    box-shadow:0 6px 18px rgba(0,0,0,.4); min-width:clamp(84px,12vw,120px);
+  }
+  .ffaColorCard .swatch{
+    width:clamp(48px,7vw,72px); height:clamp(34px,5vh,50px); border-radius:10px;
+    background:var(--cc); box-shadow:inset 0 -6px 10px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.4);
+  }
+  .ffaColorCard .pnum{font-size:clamp(22px,3.4vh,30px); font-weight:900; color:var(--cc); text-shadow:0 2px 4px rgba(0,0,0,.6);}
+  .ffaColorCard .cname{font-size:clamp(14px,2vh,18px); font-weight:700; color:#e7ebfb;}
+  .ffaCardBtn{
+    margin-top:4px; border:none; border-radius:10px; cursor:pointer; line-height:1.05;
+    background:#ffd447; color:#3a2600; font-family:'Do Hyeon',sans-serif; font-weight:900;
+    font-size:clamp(15px,2.2vh,20px); padding:clamp(6px,1.2vh,10px) clamp(14px,2vw,22px);
+  }
+  .ffaCardBtn:active{transform:scale(.94);}
+  .ffaColorCard.confirmed{background:rgba(61,220,132,.12); border-color:#3ddc84;}
+  .ffaColorCard.confirmed .ffaCardBtn{background:#1f5c3d; color:#7bffc0; cursor:default;}
+  .ffaProg{font-size:clamp(16px,2.4vh,24px); font-weight:900; color:#cfd6f2; text-shadow:0 2px 6px rgba(0,0,0,.7);}
+  #ffaConfirmBtn{
+    margin-top:clamp(4px,1vh,10px); background:#ffd447; color:#3a2600; border:none; border-radius:16px;
+    padding:clamp(12px,2vh,18px) clamp(30px,6vw,56px); font-family:'Do Hyeon',sans-serif;
+    font-size:clamp(22px,3.4vh,30px); font-weight:900; cursor:pointer; line-height:1.05;
+  }
+  #ffaConfirmBtn .en{font-size:.45em; letter-spacing:3px; color:#6b5300;}
+  #ffaConfirmBtn:active{transform:scale(.96);}
+  .ffaSpinner{
+    width:clamp(56px,10vh,84px); height:clamp(56px,10vh,84px); border-radius:50%;
+    border:clamp(7px,1.2vh,10px) solid rgba(255,255,255,.18); border-top-color:#ffd447;
+    animation:ffaSpin .8s linear infinite;
+  }
+  @keyframes ffaSpin{ to{ transform:rotate(360deg);} }
+
+  /* 자리로 이동 안내 (상단 배너) */
+  #seatMove{
+    position:absolute; top:0; left:0; right:0; display:none; z-index:63; pointer-events:none;
+    justify-content:center; padding-top:clamp(10px,2.5vh,26px);
+  }
+  #seatMove .box{
+    background:rgba(10,15,32,.88); border:3px solid #ffd447; border-radius:20px;
+    padding:clamp(10px,1.8vh,18px) clamp(24px,4vw,44px); text-align:center;
+    box-shadow:0 8px 26px rgba(0,0,0,.55);
+  }
+  #seatMove .msg{font-family:'Do Hyeon',sans-serif; font-size:clamp(24px,4.5vh,44px); font-weight:900; color:#ffd447; line-height:1.1;}
+  #seatMove .msg .en{font-size:.42em; letter-spacing:4px; color:#eef1fa; display:block; margin-top:2px;}
+  #seatMove .cd{font-family:'Do Hyeon',sans-serif; font-size:clamp(40px,9vh,84px); font-weight:900; color:#fff; line-height:1; margin-top:4px;}
+
   /* ---------- GAME OVER ---------- */
   #gameOverScreen{
     position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column;
@@ -485,6 +547,10 @@
   <!-- READY BANNER -->
   <div id="readyBanner"><span class="readyText">이동, 각도, 파워 조정 후 공격!<span class="en">Move, aim, power up, and fire!</span></span></div>
 
+  <!-- FFA 자리 배정 인트로 -->
+  <div id="ffaOverlay"></div>
+  <div id="seatMove"><div class="box"><div class="msg">자리로 이동하세요<span class="en">GO TO YOUR SEAT</span></div><div class="cd">5</div></div></div>
+
   <!-- GAME OVER -->
   <div id="gameOverScreen">
     <h2 id="winnerText">A팀 승리!</h2>
@@ -538,6 +604,15 @@
     }catch(e){}
   }
   function sndFire(){ beep(500,180,0.18,'sawtooth',0.18); }
+  // 대포 발사 효과음 (같은 폴더의 bomb.mp3)
+  let bombAudio = null;
+  function sndBomb(){
+    try{
+      if(!bombAudio){ bombAudio = new Audio('bomb.mp3'); bombAudio.volume = 0.6; }
+      bombAudio.currentTime = 0;
+      bombAudio.play().catch(()=>{});
+    }catch(e){}
+  }
   function sndExplosion(){ beep(160,40,0.4,'square',0.28); }
   function sndWin(){ beep(440,880,0.6,'triangle',0.25); }
   function sndCount(){ beep(760,600,0.18,'square',0.22); }   // 3,2,1 틱
@@ -706,6 +781,17 @@
     A:{color:'#ff5b4a', dark:'#8a1f14'},
     B:{color:'#3aa0ff', dark:'#123a66'}
   };
+  // 개인전 색 이름 (FFA_COLORS 순서와 일치)
+  const FFA_COLOR_NAMES = ['빨강','파랑','초록','노랑','보라','분홍'];
+
+  // 배열을 제자리에서 섞음 (Fisher–Yates)
+  function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]] = [arr[j],arr[i]];
+    }
+    return arr;
+  }
 
   function makePlayer(idx, x, team, color, dark){
     return {
@@ -714,6 +800,7 @@
       active:true, alive:true,
       x, y:0, hp:100, angle:45, power:55, confirmed:false,
       moveBudget: MOVE_MAX,
+      seat:0,                      // 조작부 자리(왼→오 순서). 개인전은 랜덤 배정
       rank:0, deathOrder:0
     };
   }
@@ -728,14 +815,20 @@
       layout.forEach((slot, k)=>{
         const isA = slot < NUM_SLOTS/2;
         const c = isA ? TEAM_COLORS.A : TEAM_COLORS.B;
-        players.push(makePlayer(k, slotCenterX(slot), isA?'A':'B', c.color, c.dark));
+        const pl = makePlayer(k, slotCenterX(slot), isA?'A':'B', c.color, c.dark);
+        pl.seat = slot;                       // 팀전은 슬롯 순서대로 (고정)
+        players.push(pl);
       });
     } else {
-      // 개인전: count 명을 균등하게 배치, 각자 고유 팀
+      // 개인전: 색은 플레이어 번호에 고정, 자리(seat)는 랜덤 배정
+      const seats = shuffle([...Array(count).keys()]);   // 0..count-1 랜덤 순열
       for(let i=0;i<count;i++){
-        const x = (i+0.5)/count * CW;
+        const seat = seats[i];
+        const x = (seat+0.5)/count * CW;
         const c = FFA_COLORS[i % FFA_COLORS.length];
-        players.push(makePlayer(i, x, 'P'+i, c.color, c.dark));
+        const pl = makePlayer(i, x, 'P'+i, c.color, c.dark);
+        pl.seat = seat;
+        players.push(pl);
       }
     }
   }
@@ -753,6 +846,7 @@
       col.id = 'col'+p.idx;
       col.style.setProperty('--pc', p.color);
       col.style.setProperty('--pd', p.dark);
+      col.style.order = p.seat;   // 조작부를 자리(seat) 순서로 왼→오 배치
 
       col.innerHTML = `
         <div class="rankBadge" id="rank${p.idx}"></div>
@@ -1032,6 +1126,7 @@
     hideTurnTimer();  // 발사 시작 → 타이머 종료
     flying = true;
     pastPaths = [];   // 새로 발사하면 지난 궤적 지움
+    sndBomb();        // bomb.mp3 발사음
     sndFire();
     players.forEach(p=>{
       if(!p.alive || !p.confirmed) return;   // 시간 안에 확인한 대포만 발사 (놓친 대포는 제외)
@@ -1422,8 +1517,12 @@
       ctx2d.beginPath(); ctx2d.moveTo(2,-3); ctx2d.lineTo(len-9,-3); ctx2d.stroke();
       ctx2d.restore();
 
-      // 에너지(HP) 게이지 — 탱크 위에 떠 있는 녹색 막대 (땅에 가려지지 않도록 탱크 위로)
-      const barW = 48, barH = 8, barY = -52;   // 탱크 몸통 위
+      // 에너지(HP) 게이지 — 기본은 탱크 그림자 아래.
+      // 단, 탱크가 맵 바닥에 닿아 아래 게이지가 화면 밖으로 잘리면 탱크 위로 올림.
+      const barW = 48, barH = 8;
+      const belowY = 14;                                     // 기본 위치(그림자 아래)
+      const belowClipped = (p.y + belowY + barH + 4) > CH;   // 아래 게이지가 바닥에 잘리는지
+      const barY = belowClipped ? -52 : belowY;              // 잘리면 탱크 위로
       const hpFrac = Math.max(0, Math.min(1, p.hp/100));
       // 배경(테두리)
       ctx2d.fillStyle = 'rgba(0,0,0,0.7)';
@@ -1437,13 +1536,14 @@
         else ctx2d.fillRect(-barW/2, barY, innerW, barH);
       }
 
-      // 팀 라벨
+      // 팀 라벨 (게이지가 아래면 라벨은 탱크 위, 게이지가 위로 올라오면 그 위)
+      const labelY = belowClipped ? -66 : -48;
       ctx2d.fillStyle = '#fff';
       ctx2d.font = '16px "Do Hyeon"';
       ctx2d.textAlign = 'center';
       ctx2d.strokeStyle='rgba(0,0,0,0.6)'; ctx2d.lineWidth=3;
-      ctx2d.strokeText((p.idx+1)+'P', 0, -66);
-      ctx2d.fillText((p.idx+1)+'P', 0, -66);
+      ctx2d.strokeText((p.idx+1)+'P', 0, labelY);
+      ctx2d.fillText((p.idx+1)+'P', 0, labelY);
       ctx2d.restore();
     });
 
@@ -1526,13 +1626,95 @@
     updateConfirmCounter();
     resizeCanvas();
 
-    runCountdown(showReadyThenStart);   // 카운트다운 → 안내 배너 → 10초 제한시간 시작
+    if(gameType==='ffa'){
+      runFFAIntro();                    // 개인전: 색 확인 → 랜덤 자리 배정 → 자리로 이동 → 시작
+    } else {
+      runCountdown(showReadyThenStart); // 팀전: 카운트다운 → 안내 배너 → 10초 제한시간 시작
+    }
+  }
+
+  // ===== 개인전 인트로: 색 확인 → 자리 랜덤 배정(스피너 5초) → 자리로 이동(5초) → 게임 시작 =====
+  let ffaAssignTid = null, ffaMoveIv = null;
+  function runFFAIntro(){
+    const ov = document.getElementById('ffaOverlay');
+    const seatMove = document.getElementById('seatMove');
+    controlsRow.style.pointerEvents = 'none';   // 인트로 동안 조작 잠금
+
+    // 1) 내 색깔 확인 — 색깔마다 확인 버튼, 모두 눌러야 다음으로
+    const total = players.length;
+    const cards = players.map(p=>{
+      const name = FFA_COLOR_NAMES[p.idx % FFA_COLOR_NAMES.length];
+      return '<div class="ffaColorCard" style="--cc:'+p.color+'">'
+           +   '<div class="swatch"></div>'
+           +   '<div class="pnum">'+(p.idx+1)+'P</div>'
+           +   '<div class="cname">'+name+'</div>'
+           +   '<button class="ffaCardBtn" data-idx="'+p.idx+'">확인 ✔</button>'
+           + '</div>';
+    }).join('');
+    ov.innerHTML =
+      '<h2>내 색깔을 확인하세요<span class="en">TAP YOUR OWN COLOR</span></h2>'
+    + '<div class="ffaColorGrid">'+cards+'</div>'
+    + '<div class="ffaProg" id="ffaProg">0 / '+total+' 확인</div>';
+    ov.style.display = 'flex';
+
+    const confirmed = new Set();
+    const prog = ov.querySelector('#ffaProg');
+    ov.querySelectorAll('.ffaCardBtn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const idx = parseInt(btn.dataset.idx, 10);
+        if(confirmed.has(idx)) return;
+        confirmed.add(idx);
+        btn.closest('.ffaColorCard').classList.add('confirmed');
+        btn.textContent = '완료 ✓';
+        btn.disabled = true;
+        prog.textContent = confirmed.size+' / '+total+' 확인';
+        sndCount();
+        if(confirmed.size >= total) setTimeout(phaseAssign, 450);  // 모두 확인 → 자리 배정
+      });
+    });
+
+    // 2) 자리 배정중 (스피너 5초) — 자리는 이미 랜덤 배정됨
+    function phaseAssign(){
+      ov.innerHTML =
+        '<div class="ffaSpinner"></div>'
+      + '<h2>자리를 배정중입니다…<span class="en">ASSIGNING SEATS…</span></h2>';
+      ffaAssignTid = setTimeout(phaseMove, 5000);
+    }
+
+    // 3) 자리로 이동 (5초 카운트) — 배틀필드의 랜덤 배치 공개
+    function phaseMove(){
+      ffaAssignTid = null;
+      ov.style.display = 'none';
+      const cd = seatMove.querySelector('.cd');
+      let n = 5;
+      cd.textContent = n;
+      seatMove.style.display = 'flex';
+      sndStart();
+      ffaMoveIv = setInterval(function(){
+        n--;
+        if(n<=0){
+          clearInterval(ffaMoveIv); ffaMoveIv = null;
+          seatMove.style.display = 'none';
+          controlsRow.style.pointerEvents = '';
+          showReadyThenStart();          // 게임 시작 (안내 배너 → 10초 타이머)
+          return;
+        }
+        cd.textContent = n;
+        sndCount();
+      }, 1000);
+    }
   }
 
   function backToStart(){
     hideTurnTimer();
     fireBanner.style.display = 'none';
     readyBanner.style.display = 'none';
+    // 개인전 인트로 정리
+    if(ffaAssignTid){ clearTimeout(ffaAssignTid); ffaAssignTid = null; }
+    if(ffaMoveIv){ clearInterval(ffaMoveIv); ffaMoveIv = null; }
+    document.getElementById('ffaOverlay').style.display = 'none';
+    document.getElementById('seatMove').style.display = 'none';
+    controlsRow.style.pointerEvents = '';
     document.getElementById('gameScreen').style.display = 'none';
     document.getElementById('gameOverScreen').style.display = 'none';
     document.getElementById('startScreen').style.display = 'flex';
