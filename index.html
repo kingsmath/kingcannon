@@ -1745,21 +1745,24 @@
 
   // ---- 옵션 선택 ----
   document.querySelectorAll('#windOpts .opt-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+    btn.addEventListener('pointerdown', ev=>{
+      ev.preventDefault();
       windEnabled = btn.dataset.wind==='1';
       document.querySelectorAll('#windOpts .opt-btn').forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');
     });
   });
   document.querySelectorAll('#shotOpts .opt-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+    btn.addEventListener('pointerdown', ev=>{
+      ev.preventDefault();
       roundLimit = btn.dataset.shots==='inf' ? Infinity : parseInt(btn.dataset.shots,10);
       document.querySelectorAll('#shotOpts .opt-btn').forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');
     });
   });
   document.querySelectorAll('#trailOpts .opt-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+    btn.addEventListener('pointerdown', ev=>{
+      ev.preventDefault();
       trailsEnabled = btn.dataset.trail==='1';
       document.querySelectorAll('#trailOpts .opt-btn').forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');
@@ -1767,12 +1770,15 @@
   });
 
   document.querySelectorAll('.mode-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=> startGame(btn.dataset.type, parseInt(btn.dataset.count,10)));
+    btn.addEventListener('pointerdown', ev=>{
+      ev.preventDefault();
+      startGame(btn.dataset.type, parseInt(btn.dataset.count,10));
+    });
   });
 
   // ---- 홈 / 전체화면 ----
-  document.getElementById('homeBtn').addEventListener('click', backToStart);
-  document.getElementById('restartBtn2').addEventListener('click', backToStart);
+  document.getElementById('homeBtn').addEventListener('pointerdown', ev=>{ ev.preventDefault(); backToStart(); });
+  document.getElementById('restartBtn2').addEventListener('pointerdown', ev=>{ ev.preventDefault(); backToStart(); });
 
   const fsBtn = document.getElementById('fsBtn');
   function isFs(){ return document.fullscreenElement || document.webkitFullscreenElement; }
@@ -1787,7 +1793,7 @@
     }
   }
   function updateFsIcon(){ fsBtn.textContent = isFs() ? '🗗' : '⛶'; }
-  fsBtn.addEventListener('click', toggleFullscreen);
+  fsBtn.addEventListener('pointerdown', ev=>{ ev.preventDefault(); toggleFullscreen(); });
   document.addEventListener('fullscreenchange', updateFsIcon);
   document.addEventListener('webkitfullscreenchange', updateFsIcon);
 
