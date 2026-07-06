@@ -961,7 +961,12 @@
       updateAngleUI();
       updatePowerUI();
 
-      col.querySelector('#fire'+p.idx).addEventListener('click', ()=> confirmPlayer(p.idx));
+      // 발사 버튼: click 대신 pointerdown을 사용해 여러 명이 동시에 눌러도
+      // 각자의 터치가 독립적으로 즉시 인식되도록 함 (전자칠판 멀티터치 대응)
+      col.querySelector('#fire'+p.idx).addEventListener('pointerdown', ev=>{
+        ev.preventDefault();
+        confirmPlayer(p.idx);
+      });
     });
     refreshHpBars();
   }
@@ -1675,7 +1680,10 @@
     const confirmed = new Set();
     const prog = ov.querySelector('#ffaProg');
     ov.querySelectorAll('.ffaCardBtn').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
+      // 색깔 확인 버튼: click 대신 pointerdown을 사용해 여러 명이 동시에 눌러도
+      // 각자의 터치가 독립적으로 즉시 인식되도록 함 (전자칠판 멀티터치 대응)
+      btn.addEventListener('pointerdown', ev=>{
+        ev.preventDefault();
         const idx = parseInt(btn.dataset.idx, 10);
         if(confirmed.has(idx)) return;
         confirmed.add(idx);
