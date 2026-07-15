@@ -145,8 +145,8 @@
     text-shadow:0 2px 6px rgba(0,0,0,.8);
   }
 
-  /* options: 심플한 세그먼트 버튼 */
-  .opt-block{display:flex; flex-direction:column; gap:clamp(8px,1.3vh,14px); align-items:center;}
+  .opt-block{display:flex; flex-direction:column; gap:clamp(8px,1.3vh,14px); align-items:center; width:100%;}
+  .opt-row{display:flex; gap:clamp(16px,4vw,36px); justify-content:center; flex-wrap:wrap; width:100%;}
   .opt-group{display:flex; align-items:center; gap:12px;}
   .opt-title{min-width:78px; text-align:right; font-size:clamp(15px,2vh,18px); font-weight:900; color:#cfd6f2; text-shadow:0 2px 6px rgba(0,0,0,.8); line-height:1.05;}
   .opt-title .en{text-align:right; margin-top:0;}
@@ -387,7 +387,7 @@
     position:absolute; inset:0; display:none; z-index:66;
     flex-direction:column; align-items:center; justify-content:center;
     gap:clamp(14px,3vh,30px); padding:clamp(16px,4vh,40px) 16px; text-align:center;
-    background:rgba(5,7,18,.94);
+    background:rgba(5,7,18,1);
   }
   #ffaOverlay h2{
     font-family:'Do Hyeon',sans-serif; font-size:clamp(26px,5vh,48px); margin:0; color:#ffd447; line-height:1.2;
@@ -479,26 +479,37 @@
     </p>
 
     <div class="opt-block">
-      <div class="opt-group">
-        <div class="opt-title">바람<span class="en">WIND</span></div>
-        <div class="seg" id="windOpts">
-          <button class="opt-btn selected" data-wind="1">있음<span class="en">ON</span></button>
-          <button class="opt-btn" data-wind="0">없음<span class="en">OFF</span></button>
+      <div class="opt-row">
+        <div class="opt-group">
+          <div class="opt-title">바람<span class="en">WIND</span></div>
+          <div class="seg" id="windOpts">
+            <button class="opt-btn selected" data-wind="1">있음<span class="en">ON</span></button>
+            <button class="opt-btn" data-wind="0">없음<span class="en">OFF</span></button>
+          </div>
+        </div>
+        <div class="opt-group">
+          <div class="opt-title">발사<span class="en">SHOTS</span></div>
+          <div class="seg" id="shotOpts">
+            <button class="opt-btn" data-shots="5">5<span class="en">SHOTS</span></button>
+            <button class="opt-btn" data-shots="10">10<span class="en">SHOTS</span></button>
+            <button class="opt-btn selected" data-shots="inf">끝까지<span class="en">ALL</span></button>
+          </div>
         </div>
       </div>
-      <div class="opt-group">
-        <div class="opt-title">발사<span class="en">SHOTS</span></div>
-        <div class="seg" id="shotOpts">
-          <button class="opt-btn" data-shots="5">5<span class="en">SHOTS</span></button>
-          <button class="opt-btn" data-shots="10">10<span class="en">SHOTS</span></button>
-          <button class="opt-btn selected" data-shots="inf">끝까지<span class="en">ALL</span></button>
+      <div class="opt-row">
+        <div class="opt-group">
+          <div class="opt-title">궤적<span class="en">TRAIL</span></div>
+          <div class="seg" id="trailOpts">
+            <button class="opt-btn selected" data-trail="1">있음<span class="en">ON</span></button>
+            <button class="opt-btn" data-trail="0">없음<span class="en">OFF</span></button>
+          </div>
         </div>
-      </div>
-      <div class="opt-group">
-        <div class="opt-title">궤적<span class="en">TRAIL</span></div>
-        <div class="seg" id="trailOpts">
-          <button class="opt-btn selected" data-trail="1">있음<span class="en">ON</span></button>
-          <button class="opt-btn" data-trail="0">없음<span class="en">OFF</span></button>
+        <div class="opt-group">
+          <div class="opt-title">아이템<span class="en">ITEM</span></div>
+          <div class="seg" id="itemOpts">
+            <button class="opt-btn selected" data-item="1">있음<span class="en">ON</span></button>
+            <button class="opt-btn" data-item="0">없음<span class="en">OFF</span></button>
+          </div>
         </div>
       </div>
     </div>
@@ -634,6 +645,7 @@
     const now = performance.now();
     if(now - lastBlockSnd > 400){ lastBlockSnd = now; sndBlocked(); }  // 연속 도배 방지
   }
+  function sndItemDrop(){ beep(450, 300, 0.2, 'sine', 0.15); }
 
   // ============== STATE ==============
   const canvas = document.getElementById('battlefield');
@@ -646,6 +658,7 @@
   let windEnabled = true;        // 바람 옵션
   let roundLimit = Infinity;     // 발사 횟수 옵션 (5 / 10 / Infinity)
   let trailsEnabled = true;      // 궤적 남기기 옵션 (기본 ON)
+  let itemsEnabled = true;       // 아이템 온오프 옵션 (기본 ON)
   let projectiles = [];
   let explosions = [];
   let pastPaths = [];            // 직전 발사의 대포알 경로들 (다음 발사 전까지 표시)
@@ -654,6 +667,11 @@
   let deathSeq = 0;              // 죽은 순서 (개인전 등수 계산용, 먼저 죽을수록 꼴등)
   let turnTimeLeft = 0;          // 이번 턴 남은 시간(초)
   let turnTimerId = null;        // 턴 타이머 setInterval 핸들
+
+  let droppedItems = [];
+  let floatingTexts = [];
+  let dropRegionsPool = [];
+  let itemDropPhase = false;
 
   const controlsRow = document.getElementById('controlsRow');
   const roundLabel = document.getElementById('roundLabel');
@@ -801,7 +819,9 @@
       x, y:0, hp:100, angle:45, power:55, confirmed:false,
       moveBudget: MOVE_MAX,
       seat:0,                      // 조작부 자리(왼→오 순서). 개인전은 랜덤 배정
-      rank:0, deathOrder:0
+      rank:0, deathOrder:0,
+      doubleShot: false,           // 더블샷 아이템 획득 여부
+      freeMoveTime: 0              // 자유 이동 잔여 시간 (초)
     };
   }
 
@@ -986,16 +1006,24 @@
     const fill = document.getElementById('movefill'+p.idx);
     const val = document.getElementById('moveval'+p.idx);
     if(!fill) return;
-    const pct = Math.max(0, p.moveBudget)/MOVE_MAX*100;
-    fill.style.width = pct+'%';
-    val.textContent = Math.round(p.moveBudget*10)/10;
+    if (p.freeMoveTime > 0) {
+      fill.style.width = '100%';
+      fill.style.background = 'linear-gradient(90deg, #3ae0ff, #7beaff)';
+      val.textContent = '⚡ 자유이동 ' + Math.ceil(p.freeMoveTime) + 's';
+    } else {
+      const pct = Math.max(0, p.moveBudget)/MOVE_MAX*100;
+      fill.style.width = pct+'%';
+      fill.style.background = 'linear-gradient(90deg,#3ddc84,#7bffc0)';
+      val.textContent = Math.round(p.moveBudget*10)/10;
+    }
   }
 
   // 한 스텝 좌우 이동 (경사·경계·충돌·게이지 제한)
   function stepMove(p, dir){
     if(!p.alive || p.confirmed || flying || gameOver) return;
-    if(p.moveBudget<=0.0001) return;
-    const step = Math.min(MOVE_SUB, p.moveBudget*MOVE_PX_PER_UNIT);
+    const isFree = p.freeMoveTime > 0;
+    if(!isFree && p.moveBudget<=0.0001) return;
+    const step = Math.min(MOVE_SUB, isFree ? MOVE_SUB : p.moveBudget*MOVE_PX_PER_UNIT);
     const nx = p.x + dir*step;
     if(nx < TANK_RADIUS || nx > CW-TANK_RADIUS) return;          // 맵 경계
     for(const o of players){                                     // 다른 대포와 충돌
@@ -1007,7 +1035,9 @@
     if(rise/step > MAX_CLIMB){ blockAlert(); return; }           // 너무 가파른 오르막 → 못 감 ("띠띠")
     p.x = nx;
     p.y = ny;
-    p.moveBudget = Math.max(0, p.moveBudget - step/MOVE_PX_PER_UNIT);
+    if (!isFree) {
+      p.moveBudget = Math.max(0, p.moveBudget - step/MOVE_PX_PER_UNIT);
+    }
     updateMoveUI(p);
   }
 
@@ -1063,6 +1093,7 @@
     sndReady();                               // "따라랑~" 안내 효과음
     setTimeout(()=>{
       readyBanner.style.display = 'none';
+      controlsRow.style.pointerEvents = '';   // 헬기 비행이 끝나고 턴 시작 안내도 끝난 시점에 대포 조작 활성화
       if(!gameOver && !flying) startTurnTimer();
     }, READY_MS);
   }
@@ -1147,6 +1178,25 @@
       projectiles.push({
         owner:p.idx, x:spawnX, y:spawnY, vx:vx, vy:vy, trail:[], path:[{x:spawnX,y:spawnY}]
       });
+
+      // 더블샷 처리
+      if (p.doubleShot) {
+        setTimeout(() => {
+          if (gameOver || !p.alive) return;
+          const currentRad = p.angle * Math.PI/180;
+          const currentSpeed = p.power * POWER_SCALE;
+          const currentVx = Math.cos(currentRad)*currentSpeed*facing;
+          const currentVy = -Math.sin(currentRad)*currentSpeed;
+          const currentSpawnX = p.x + Math.cos(currentRad)*facing*muzzleLen;
+          const currentSpawnY = p.y + originY - Math.sin(currentRad)*muzzleLen;
+          
+          projectiles.push({
+            owner:p.idx, x:currentSpawnX, y:currentSpawnY, vx:currentVx, vy:currentVy, trail:[], path:[{x:currentSpawnX,y:currentSpawnY}]
+          });
+          sndFire();
+        }, 220);
+        p.doubleShot = false; // 소모
+      }
     });
   }
 
@@ -1166,6 +1216,240 @@
     refreshHpBars();
   }
 
+  // ============== HELICOPTER & ITEMS ==============
+  function spawnItemDrop() {
+    if (!itemsEnabled) {
+      itemDropPhase = false;
+      return;
+    }
+
+    // 6개 영역 분할 및 셔플링 풀 관리
+    if (dropRegionsPool.length === 0) {
+      dropRegionsPool = shuffle([0, 1, 2, 3, 4, 5]);
+    }
+    const regionIdx = dropRegionsPool.pop();
+    const regionWidth = CW / 6;
+    const margin = 40;
+    const minX = regionIdx * regionWidth + margin;
+    const maxX = (regionIdx + 1) * regionWidth - margin;
+    
+    // 생존한 탱크들과 안전거리(70px)를 두는 dropX 선정
+    let dropX = 0;
+    let attempts = 0;
+    const minDistanceToTank = 70;
+    do {
+      dropX = minX + Math.random() * (maxX - minX);
+      let tooClose = false;
+      for (const p of players) {
+        if (p.active && p.alive && Math.abs(p.x - dropX) < minDistanceToTank) {
+          tooClose = true;
+          break;
+        }
+      }
+      if (!tooClose) break;
+      attempts++;
+    } while (attempts < 15);
+    
+    const types = ['freeMove', 'doubleShot', 'heart', 'mountain', 'landmine'];
+    const itemType = types[Math.floor(Math.random() * types.length)];
+    
+    // 하늘에서 즉시 뚝 떨어짐 (낙하산 🪂 상태로 시작)
+    droppedItems.push({
+      x: dropX,
+      y: 40,
+      vy: 55,
+      type: itemType,
+      state: 'falling'
+    });
+    
+    // 아이템 드롭 페이즈 시작 -> 대포 조작 금지
+    itemDropPhase = true;
+    controlsRow.style.pointerEvents = 'none';
+    
+    sndItemDrop();
+  }
+
+  function updateHelicopterAndItems(dt) {
+    let anyFalling = false;
+
+    for (let i = droppedItems.length - 1; i >= 0; i--) {
+      const item = droppedItems[i];
+      if (item.state === 'falling') {
+        anyFalling = true;
+        item.vy += GRAVITY * dt;
+        item.y += item.vy * dt;
+        
+        const groundY = terrainHeightAt(item.x);
+        if (item.y >= groundY) {
+          item.y = groundY;
+          item.state = 'ground';
+          item.vy = 0;
+        }
+      } else if (item.state === 'ground') {
+        // 요구사항: 산이 내려가거나 지형이 깎이면 아이템도 탱크처럼 땅에 닿게 Y 갱신
+        item.y = terrainHeightAt(item.x);
+      }
+      
+      if (!flying && !gameOver && !itemDropPhase) {
+        players.forEach(p => {
+          if (!p.active || !p.alive) return;
+          const dx = Math.abs(p.x - item.x);
+          if (dx < TANK_RADIUS + 12) {
+            applyItemEffect(p, item);
+            droppedItems.splice(i, 1);
+          }
+        });
+      }
+    }
+
+    // 아이템 드롭 페이즈인데 더 이상 낙하 중인 아이템이 없다면 페이즈 종료 및 턴 시작
+    if (itemDropPhase && !anyFalling) {
+      itemDropPhase = false;
+      showReadyThenStart();
+    }
+  }
+
+  function applyItemEffect(player, item) {
+    if (item.type === 'heart') {
+      player.hp = Math.min(100, player.hp + 50);
+      beep(600, 1200, 0.3, 'sine', 0.25);
+      showItemText(player.x, player.y - 45, "+50 HP ❤️", player.color);
+      refreshHpBars();
+    } else if (item.type === 'doubleShot') {
+      player.doubleShot = true;
+      beep(400, 800, 0.25, 'triangle', 0.25);
+      showItemText(player.x, player.y - 45, "더블샷! 🚀x2", player.color);
+      updateFireButtonText(player);
+    } else if (item.type === 'freeMove') {
+      player.freeMoveTime = 5.0;
+      beep(500, 1000, 0.25, 'sawtooth', 0.20);
+      showItemText(player.x, player.y - 45, "자유 이동 5초! ⚡", player.color);
+      updateMoveUI(player);
+    } else if (item.type === 'mountain') {
+      raiseTerrainAt(item.x, 85, 75);
+      beep(150, 300, 0.5, 'triangle', 0.3);
+      showItemText(player.x, player.y - 45, "지형 융기! ⛰️", player.color);
+    } else if (item.type === 'landmine') {
+      explodeAt(item.x, item.y, null);
+      showItemText(player.x, player.y - 45, "지뢰 밟음! 💥", "#ff4d4d");
+    }
+  }
+
+  function updateFireButtonText(player) {
+    const btn = document.getElementById('fire' + player.idx);
+    if (btn && player.alive && !player.confirmed) {
+      if (player.doubleShot) {
+        btn.textContent = '더블샷 발사!';
+        btn.style.background = '#ff8a3d';
+        btn.style.color = '#fff';
+      } else {
+        btn.textContent = '발사! FIRE!';
+        btn.style.background = '#ffd447';
+        btn.style.color = '#3a2600';
+      }
+    }
+  }
+
+  function showItemText(x, y, text, color) {
+    floatingTexts.push({
+      x: x,
+      y: y,
+      text: text,
+      color: color,
+      t: 0,
+      maxT: 1.5
+    });
+  }
+
+  function updateFloatingTexts(dt) {
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+      const ft = floatingTexts[i];
+      ft.t += dt;
+      ft.y -= 25 * dt;
+      if (ft.t >= ft.maxT) {
+        floatingTexts.splice(i, 1);
+      }
+    }
+  }
+
+  function renderFloatingTexts() {
+    ctx2d.save();
+    floatingTexts.forEach(ft => {
+      const alpha = Math.max(0, 1 - ft.t / ft.maxT);
+      ctx2d.globalAlpha = alpha;
+      ctx2d.font = 'bold 18px "Do Hyeon"';
+      ctx2d.textAlign = 'center';
+      ctx2d.strokeStyle = 'rgba(0,0,0,0.8)';
+      ctx2d.lineWidth = 3;
+      ctx2d.strokeText(ft.text, ft.x, ft.y);
+      ctx2d.fillStyle = ft.color || '#fff';
+      ctx2d.fillText(ft.text, ft.x, ft.y);
+    });
+    ctx2d.restore();
+  }
+
+  function updatePlayerFreeMove(dt) {
+    if (!flying && !gameOver) {
+      players.forEach(p => {
+        if (p.active && p.alive && p.freeMoveTime > 0) {
+          p.freeMoveTime = Math.max(0, p.freeMoveTime - dt);
+          updateMoveUI(p);
+        }
+      });
+    }
+  }
+
+  function raiseTerrainAt(x, radius, height) {
+    const colRadius = Math.ceil(radius/STEP)+1;
+    const centerCol = Math.round(x/STEP);
+    for(let c=centerCol-colRadius; c<=centerCol+colRadius; c++){
+      if(c<0||c>COLS) continue;
+      const dist = Math.abs(c*STEP - x);
+      if(dist>radius) continue;
+      const push = height*(1-dist/radius);
+      terrain[c] = Math.max(CH*0.2, terrain[c] - push);
+    }
+    players.forEach(p => { p.y = terrainHeightAt(p.x); });
+  }
+
+  function renderHelicopterAndItems() {
+    const now = performance.now();
+
+    // 아이템 (획득 전까지 미스터리 박스 📦 형태)
+    droppedItems.forEach(item => {
+      ctx2d.save();
+      if (item.state === 'falling') {
+        // 낙하 중
+        ctx2d.font = '42px "Do Hyeon"';
+        ctx2d.textAlign = 'center';
+        ctx2d.fillText('🪂', item.x, item.y - 14);
+        
+        ctx2d.font = '24px "Do Hyeon"';
+        ctx2d.fillText('📦', item.x, item.y + 14);
+      } else {
+        // 안착 상태 (둥실둥실 뜨는 효과)
+        const hoverY = Math.sin(now / 180) * 5;
+        const itemY = item.y - 20 + hoverY;
+        
+        // 은은한 발광 광채
+        ctx2d.beginPath();
+        const grad = ctx2d.createRadialGradient(item.x, itemY, 0, item.x, itemY, 24);
+        grad.addColorStop(0, 'rgba(255, 220, 100, 0.7)');
+        grad.addColorStop(1, 'rgba(255, 220, 100, 0)');
+        ctx2d.fillStyle = grad;
+        ctx2d.arc(item.x, itemY, 24, 0, Math.PI*2);
+        ctx2d.fill();
+        
+        // 미스터리 상자 렌더링
+        ctx2d.font = '30px "Do Hyeon"';
+        ctx2d.textAlign = 'center';
+        ctx2d.textBaseline = 'middle';
+        ctx2d.fillText('📦', item.x, itemY);
+      }
+      ctx2d.restore();
+    });
+  }
+
   let lastT = null;
   function loop(ts){
     if(lastT===null) lastT = ts;
@@ -1181,6 +1465,10 @@
   function update(dt){
     // 탱크는 항상 지형 위에 위치
     players.forEach(p=>{ p.y = terrainHeightAt(p.x); });
+
+    updateHelicopterAndItems(dt);
+    updateFloatingTexts(dt);
+    updatePlayerFreeMove(dt);
 
     if(projectiles.length){
       for(let k=projectiles.length-1;k>=0;k--){
@@ -1325,6 +1613,7 @@
       const powBarEl = document.getElementById('powerbar'+p.idx);
       const moveEl = document.getElementById('moverow'+p.idx);
       p.moveBudget = MOVE_MAX;            // 이동 게이지 매 턴 리셋
+      p.freeMoveTime = 0;                 // 자유 이동 턴 시작 시 초기화
       updateMoveUI(p);
       if(!p.alive){
         col.classList.add('dead');
@@ -1343,7 +1632,9 @@
         return;
       }
       const btn = document.getElementById('fire'+p.idx);
-      btn.textContent = '발사! FIRE!';
+      btn.textContent = p.doubleShot ? '더블샷 발사!' : '발사! FIRE!';
+      btn.style.background = p.doubleShot ? '#ff8a3d' : '#ffd447';
+      btn.style.color = p.doubleShot ? '#fff' : '#3a2600';
       btn.classList.remove('done');
       btn.disabled = false;
       if(dialEl) dialEl.classList.remove('locked');
@@ -1351,7 +1642,11 @@
       if(moveEl) moveEl.classList.remove('locked');
     });
     updateConfirmCounter();
-    showReadyThenStart();   // 안내 배너 → 10초 제한시간 카운트
+    if (itemsEnabled) {
+      spawnItemDrop();
+    } else {
+      showReadyThenStart();
+    }
   }
 
   function showResult(result){
@@ -1567,6 +1862,8 @@
       ctx2d.restore();
     });
 
+    renderHelicopterAndItems();
+
     // 발사체 + 궤적 (대포알 색 = 발사한 대포 색, 번호 표시)
     projectiles.forEach(pr=>{
       const owner = players[pr.owner];
@@ -1616,6 +1913,8 @@
       ctx2d.beginPath(); ctx2d.arc(ex.x,ex.y,ex.r,0,Math.PI*2); ctx2d.fill();
       ctx2d.globalAlpha = 1;
     });
+
+    renderFloatingTexts();
   }
 
   // ============== FLOW CONTROL ==============
@@ -1630,6 +1929,8 @@
     pastPaths = [];
     deathSeq = 0;
     flying = false;
+    droppedItems = [];
+    floatingTexts = [];
 
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('gameOverScreen').style.display = 'none';
@@ -1649,7 +1950,13 @@
     if(gameType==='ffa'){
       runFFAIntro();                    // 개인전: 색 확인 → 랜덤 자리 배정 → 자리로 이동 → 시작
     } else {
-      runCountdown(showReadyThenStart); // 팀전: 카운트다운 → 안내 배너 → 10초 제한시간 시작
+      runCountdown(()=>{
+        if (itemsEnabled) {
+          spawnItemDrop();
+        } else {
+          showReadyThenStart();
+        }
+      });
     }
   }
 
@@ -1718,8 +2025,12 @@
         if(n<=0){
           clearInterval(ffaMoveIv); ffaMoveIv = null;
           seatMove.style.display = 'none';
-          controlsRow.style.pointerEvents = '';
-          showReadyThenStart();          // 게임 시작 (안내 배너 → 10초 타이머)
+          if (itemsEnabled) {
+            spawnItemDrop();
+          } else {
+            controlsRow.style.pointerEvents = '';
+            showReadyThenStart();          // 게임 시작 (안내 배너 → 10초 타이머)
+          }
           return;
         }
         cd.textContent = n;
@@ -1741,6 +2052,8 @@
     document.getElementById('gameScreen').style.display = 'none';
     document.getElementById('gameOverScreen').style.display = 'none';
     document.getElementById('startScreen').style.display = 'flex';
+    droppedItems = [];
+    floatingTexts = [];
   }
 
   // ---- 옵션 선택 ----
@@ -1765,6 +2078,14 @@
       ev.preventDefault();
       trailsEnabled = btn.dataset.trail==='1';
       document.querySelectorAll('#trailOpts .opt-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+  document.querySelectorAll('#itemOpts .opt-btn').forEach(btn=>{
+    btn.addEventListener('pointerdown', ev=>{
+      ev.preventDefault();
+      itemsEnabled = btn.dataset.item==='1';
+      document.querySelectorAll('#itemOpts .opt-btn').forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');
     });
   });
